@@ -1,0 +1,2 @@
+pygame>=2.5
+typesafe-sdk>=0.6

@@ -1,0 +1,4 @@
+.env
+highscore.txt
+__pycache__/
+*.pyc
