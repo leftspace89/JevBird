@@ -616,37 +616,56 @@ class Game:
                 y = int(self.path_ys[i])
                 pygame.draw.polygon(self.screen, WHITE, [(int(x), y - 10), (int(x) - 5, y - 2), (int(x) + 5, y - 2)])
 
+    def blit_text(self, text, color, left=None, right=None, top=0):
+        surf = self.small_font.render(text, True, color)
+        rect = surf.get_rect(top=top)
+        if right is None:
+            rect.left = left
+        else:
+            rect.right = right
+        self.screen.blit(surf, rect)
+
     def draw_jev_panel(self):
         top = HEIGHT - GROUND_HEIGHT
-        panel = pygame.Rect(8, top + 24, WIDTH - 16, GROUND_HEIGHT - 32)
+        panel = pygame.Rect(8, top + 14, WIDTH - 16, GROUND_HEIGHT - 22)
         pygame.draw.rect(self.screen, (40, 30, 60), panel, border_radius=6)
         pygame.draw.rect(self.screen, JEV_PURPLE, panel, 2, border_radius=6)
-        label = self.small_font.render("JEV plans each pipe", True, JEV_PURPLE)
-        self.screen.blit(label, (panel.x + 8, panel.y + 4))
         decision = self.pilot.last_decision
-        if decision is None:
-            status = "planning..."
-        else:
-            status = f"p={decision.probability:.2f} conf={decision.confidence:.2f} {round(decision.latency * 1000)} ms"
-        self.screen.blit(self.small_font.render(status, True, WHITE), (panel.x + 8, panel.y + 22))
+        muted = (200, 190, 210)
 
-        cell = 6
-        x0 = panel.x + 170
-        current = (self.frame - self.plan_start) // JEV_STEP_FRAMES if self.plan_steps else -1
-        for i, flap in enumerate(self.plan_steps[:JEV_MAX_STEPS]):
-            box = pygame.Rect(x0 + i * (cell + 1), panel.y + 6, cell, 10)
+        self.blit_text("JEV plans each pipe", JEV_PURPLE, left=panel.x + 8, top=panel.y + 3)
+        counters = (
+            f"calls {self.pilot.requests}  saves {self.fallback_flaps + self.emergency_flaps}"
+            f"  replans {self.abandoned_plans}"
+        )
+        self.blit_text(counters, muted, right=panel.right - 8, top=panel.y + 3)
+
+        cell, gap = 6, 2
+        steps = self.plan_steps[:JEV_MAX_STEPS]
+        current = (self.frame - self.plan_start) // JEV_STEP_FRAMES if steps else -1
+        for i, flap in enumerate(steps):
+            box = pygame.Rect(panel.x + 8 + i * (cell + gap), panel.y + 23, cell, 11)
             pygame.draw.rect(self.screen, JEV_PURPLE if flap else (80, 70, 100), box)
             if i == current:
                 pygame.draw.rect(self.screen, WHITE, box, 1)
 
-        bar = pygame.Rect(panel.right - 90, panel.y + 20, 80, 8)
+        if decision is None:
+            status = "planning the first pipe..."
+        else:
+            status = (
+                f"p={decision.probability:.2f} conf={decision.confidence:.2f} "
+                f"{round(decision.latency * 1000)} ms"
+            )
+        self.blit_text(status, WHITE, left=panel.x + 8, top=panel.y + 40)
+        danger = 0.0 if decision is None else decision.danger
+        bar = pygame.Rect(panel.right - 88, panel.y + 45, 80, 8)
         pygame.draw.rect(self.screen, (80, 70, 100), bar)
-        if decision is not None:
-            fill = pygame.Rect(bar.x, bar.y, int(bar.width * decision.danger), bar.height)
-            color = (230, 80, 80) if decision.danger > 0.5 else JEV_PURPLE
-            pygame.draw.rect(self.screen, color, fill)
-        info = f"calls:{self.pilot.requests} save:{self.fallback_flaps + self.emergency_flaps} off:{self.abandoned_plans}"
-        self.screen.blit(self.small_font.render(info, True, WHITE), (x0, panel.y + 22))
+        pygame.draw.rect(
+            self.screen,
+            (230, 80, 80) if danger > 0.5 else JEV_PURPLE,
+            pygame.Rect(bar.x, bar.y, int(bar.width * danger), bar.height),
+        )
+        self.blit_text("danger", muted, right=bar.x - 6, top=panel.y + 40)
 
     def draw(self):
         self.screen.fill(SKY)

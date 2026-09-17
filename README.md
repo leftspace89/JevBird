@@ -6,9 +6,11 @@ Jev never sees the screen. Every time a new pipe becomes the target, the game si
 
 ## Demo
 
-[Watch Jev play](demo/jev_plays_flappybird.mp4) — `demo/jev_plays_flappybird.mp4`
+![Jev playing Flappy Bird in real time](demo/jev_demo.gif)
 
-The purple line is the path Jev chose. The faint white lines are the paths it passed over, drawn brighter the more probability Jev gave them. The console beside the game prints every request and every answer.
+Left is the game, right is the live console. One request goes out per pipe, and every request and reply is printed as it happens.
+
+Full recording: [demo/jev_plays_flappybird.mp4](demo/jev_plays_flappybird.mp4), 2 minutes 35 seconds at 1080p.
 
 ## Install
 
@@ -53,6 +55,8 @@ Press **J** to hand control to Jev.
 The high score is saved to `highscore.txt`.
 
 ## What you see on screen
+
+![The overlay: chosen path, rejected candidates, scheduled flaps](demo/preview.png)
 
 While Jev is flying, the game draws its thinking directly into the world:
 
@@ -101,13 +105,13 @@ From headless test runs of 150 seconds each, on a residential connection:
 
 | Metric | Value |
 | --- | --- |
-| API calls | about 0.6 per second |
-| Input tokens per call | 1,800 to 2,500 |
+| API calls | about 0.55 per second, one per pipe |
+| Input tokens per call | 1,800 to 2,800 |
 | Round trip, typical | 0.30 s |
 | Round trip, worst seen | 1.2 s |
-| Best score in a run | 26 pipes |
+| Score in the recording above | 47 pipes |
 
-Scores vary between runs. Jev flies the middle of the corridor well and most losses come from a slow response during a tight pipe.
+Scores vary between runs. Jev holds the middle of the corridor well, and most losses come from a slow reply during a tight pipe.
 
 ## Project layout
 

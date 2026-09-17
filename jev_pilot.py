@@ -40,6 +40,26 @@ LOG_ENABLED = os.environ.get("JEV_LOG", "1") != "0"
 LOG_WIDTH = 78
 
 
+def _console_handles(text, encoding):
+    try:
+        text.encode(encoding or "ascii")
+        return True
+    except (LookupError, UnicodeEncodeError):
+        return False
+
+
+RULE, DOT = (
+    ("─", "·")
+    if _console_handles("─·", getattr(sys.stdout, "encoding", None))
+    else ("-", "|")
+)
+
+try:
+    sys.stdout.reconfigure(errors="replace")
+except Exception:
+    pass
+
+
 def _enable_color():
     if not LOG_ENABLED or not sys.stdout.isatty():
         return False
@@ -78,7 +98,7 @@ def log_banner(model="jev-latest"):
     if not LOG_ENABLED:
         return
     print(
-        f"\n{P.purple}{P.bold}  JEV IS FLYING{P.reset}  {P.dim}TypeSafe System One · model {model} · "
+        f"\n{P.purple}{P.bold}  JEV IS FLYING{P.reset}  {P.dim}TypeSafe System One {DOT} model {model} {DOT} "
         f"one request per pipe{P.reset}\n",
         flush=True,
     )
@@ -98,8 +118,8 @@ def log_request(state, questions, tag):
     criteria = questions["path"].criteria
     bird = state["bird_at_path_start"]
     lines = [
-        f"{P.gray}{'─' * LOG_WIDTH}{P.reset}",
-        f"{P.cyan}{P.bold}SEND{P.reset} {P.dim}request {tag['request']} · game {tag['time']:.1f}s · "
+        f"{P.gray}{RULE * LOG_WIDTH}{P.reset}",
+        f"{P.cyan}{P.bold}SEND{P.reset} {P.dim}request {tag['request']} {DOT} game {tag['time']:.1f}s {DOT} "
         f"score {tag['score']}{P.reset}",
         f"  {P.dim}bird {P.reset} {bird['position']}, {bird['motion']}",
         f"  {P.dim}gap  {P.reset} {state['gap']}, {state['upcoming']}",
