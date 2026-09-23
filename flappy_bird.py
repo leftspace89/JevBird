@@ -5,7 +5,7 @@ import sys
 
 import pygame
 
-from jev_pilot import JevPilot, build_questions, build_state, load_api_key, log_banner, log_event
+from jev_pilot import JevPilot, build_questions, build_state, load_api_key, load_base_url, log_banner, log_event
 
 WIDTH, HEIGHT = 400, 600
 FPS = 60
@@ -282,7 +282,8 @@ class Game:
         self.high_score = load_high_score()
         self.ground_offset = 0.0
         api_key = load_api_key()
-        self.pilot = JevPilot(api_key) if api_key else None
+        base_url = load_base_url()
+        self.pilot = JevPilot(api_key, base_url) if api_key or base_url else None
         self.jev_mode = False
         self.jev_error = None
         self.life = 0
@@ -315,13 +316,13 @@ class Game:
 
     def toggle_jev(self):
         if self.pilot is None:
-            self.jev_error = "No API key: set TYPESAFE_API_KEY or create .env"
+            self.jev_error = "No API key: set TYPESAFE_API_KEY or JEV_BASE_URL"
             return
         self.jev_mode = not self.jev_mode
         self.jev_error = None
         self.flap_schedule = []
         if self.jev_mode:
-            log_banner()
+            log_banner(f"local {self.pilot.base_url}" if self.pilot.base_url else "jev-latest")
         else:
             log_event("  Jev mode off, back to manual control", "gray")
         if self.jev_mode and self.state == START:

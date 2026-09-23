@@ -1,8 +1,11 @@
+import json
 import os
 import sys
 import threading
 import time
+import urllib.request
 from collections import deque
+from types import SimpleNamespace
 
 from typesafe_sdk import Choice, Noul, RetryPolicy, TypeSafeAPIError, TypeSafeClient
 
@@ -164,19 +167,27 @@ def log_event(text, color=None):
     print(f"{tint}{text}{P.reset}", flush=True)
 
 
-def load_api_key():
-    key = os.environ.get("TYPESAFE_API_KEY")
-    if key:
-        return key
+def load_setting(key):
+    value = os.environ.get(key)
+    if value:
+        return value
     try:
         with open(ENV_FILE) as f:
             for line in f:
                 name, sep, value = line.strip().partition("=")
-                if sep and name.strip() == "TYPESAFE_API_KEY":
+                if sep and name.strip() == key:
                     return value.strip().strip('"').strip("'")
     except OSError:
         pass
     return None
+
+
+def load_api_key():
+    return load_setting("TYPESAFE_API_KEY")
+
+
+def load_base_url():
+    return load_setting("JEV_BASE_URL")
 
 
 def plan_string(plan):
@@ -260,13 +271,53 @@ class PathDecision:
         self.option_count = option_count
 
 
-class JevPilot:
-    def __init__(self, api_key):
-        self.client = TypeSafeClient(
-            api_key=api_key,
-            retry=RetryPolicy(max_retries=1, timeout=REQUEST_TIMEOUT),
-            timeout=REQUEST_TIMEOUT,
+class LocalClient:
+    """Plain HTTP client for a self-hosted System One server, e.g. Laya at http://localhost:8000."""
+
+    def __init__(self, base_url):
+        self.url = base_url.rstrip("/") + "/v1/systemone"
+        self.model = None
+
+    def system_one(self, state, questions):
+        body = {
+            "state": state,
+            "questions": {
+                name: {
+                    "type": "choice" if isinstance(q, Choice) else "noul",
+                    "instructions": q.instructions,
+                    "criteria": dict(q.criteria),
+                }
+                for name, q in questions.items()
+            },
+        }
+        request = urllib.request.Request(
+            self.url, data=json.dumps(body).encode(), headers={"content-type": "application/json"}
         )
+        with urllib.request.urlopen(request, timeout=REQUEST_TIMEOUT) as reply:
+            data = json.load(reply)
+        self.model = data.get("model")
+        answers = {name: SimpleNamespace(**a) for name, a in data["answers"].items()}
+        return SimpleNamespace(
+            choices={n: a for n, a in answers.items() if a.type == "choice"},
+            nouls={n: a for n, a in answers.items() if a.type == "noul"},
+            usage=SimpleNamespace(input_tokens=data.get("usage", {}).get("input_tokens") or 0),
+        )
+
+    def close(self):
+        pass
+
+
+class JevPilot:
+    def __init__(self, api_key=None, base_url=None):
+        if base_url:
+            self.client = LocalClient(base_url)
+        else:
+            self.client = TypeSafeClient(
+                api_key=api_key,
+                retry=RetryPolicy(max_retries=1, timeout=REQUEST_TIMEOUT),
+                timeout=REQUEST_TIMEOUT,
+            )
+        self.base_url = base_url
         self.results = []
         self.error = None
         self.last_decision = None
