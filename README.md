@@ -36,6 +36,16 @@ set TYPESAFE_API_KEY=apikey_...
 
 `.env` is gitignored. Without a key the game still runs in manual mode.
 
+## Local model
+
+To use a self-hosted System One server (for example Laya) instead, set its base URL in `.env` or the environment. No API key needed:
+
+```
+JEV_BASE_URL=http://localhost:8000
+```
+
+The game then sends plain `POST {JEV_BASE_URL}/v1/systemone` requests. When set, it takes priority over `TYPESAFE_API_KEY`.
+
 ## Run
 
 ```
